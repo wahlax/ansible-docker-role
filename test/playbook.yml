@@ -1,0 +1,15 @@
+---
+
+- hosts: all
+  become: yes
+
+  pre_tasks:
+
+    - name: Add user configured by docker role
+      ansible.builtin.user:
+        name: wes
+
+  roles:
+    - role: ../../ansible-docker-role
+      docker_users:
+        - wes

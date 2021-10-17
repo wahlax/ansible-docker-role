@@ -1,0 +1,47 @@
+---
+
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Install docker ce when missing
+  block:
+
+    - name: Remove old yum packages for docker
+      ansible.builtin.yum:
+        state: absent
+        name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-logrotate
+          - docker-engine
+          - podman
+          - runc
+
+    - name: Add yum repo and packages for docker
+      ansible.builtin.command: "{{ item }}"
+      with_items:
+        - yum install -y yum-utils
+        - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        - yum install -y docker-ce docker-ce-cli containerd.io
+
+  when: "'docker-ce' not in ansible_facts.packages"
+
+- name: Start docker service
+  ansible.builtin.systemd:
+    name: docker.service
+    state: started
+    enabled: yes
+
+- name: Add docker group to {{ docker_users }}
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: yes
+  with_items: "{{ docker_users }}"
+  when: docker_users is defined
+
